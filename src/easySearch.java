@@ -20,33 +20,38 @@ import org.apache.lucene.queryparser.classic.QueryParser;
 import org.apache.lucene.search.IndexSearcher;
 import org.apache.lucene.search.Query;
 import org.apache.lucene.search.similarities.ClassicSimilarity;
+import org.apache.lucene.search.similarities.Similarity;
 import org.apache.lucene.store.FSDirectory;
 import org.apache.lucene.util.BytesRef;
 
 public class easySearch {
 	
 	private String indexPath;
-		
-	public easySearch(String p) {
+	private IndexReader reader;	
+	
+	public easySearch(String p) throws IOException {
 		indexPath = p;
+		reader = DirectoryReader.open(FSDirectory.open(Paths
+				.get(indexPath)));
 	}
 	
+	
+	
 	public static void main(String[] args)  throws ParseException, IOException {
-//		String indexPath = "F:\\Current Study\\Search\\Assignment 2\\retrieval-and-eval\\index";
 		String queryString = "Donald Trump";
 		easySearch obj = new easySearch("F:\\Current Study\\Search\\Assignment 2\\retrieval-and-eval\\index");
-		LinkedHashMap<Integer, Double> sortedDocScore = obj.calculateScores("TEXT", queryString);
+		System.out.println("Searching for query: " + queryString);
+		System.out.println("Searching in: " + "TEXT");
+		
+		LinkedHashMap<String, Double> sortedDocScore = obj.calculateScores("TEXT", queryString);
 		obj.printScores(sortedDocScore);
 	}
 	
-	public LinkedHashMap<Integer, Double> calculateScores(String zone, String queryString) throws ParseException, IOException {
+	public LinkedHashMap<String, Double> calculateScores(String zone, String queryString) throws ParseException, IOException {
 		
-		LinkedHashMap<Integer, Double> docScore = new LinkedHashMap<Integer, Double>();
+		LinkedHashMap<String, Double> docScore = new LinkedHashMap<String, Double>();
 		// Stores F(q,doc) for each doc 
-		IndexReader reader = DirectoryReader.open(FSDirectory.open(Paths
-				.get(indexPath)));
 		IndexSearcher searcher = new IndexSearcher(reader);
-		
 		// Get the preprocessed query terms
 		Analyzer analyzer = new StandardAnalyzer();
 		QueryParser parser = new QueryParser(zone, analyzer);
@@ -73,20 +78,18 @@ public class easySearch {
 				PostingsEnum de = MultiFields.getTermDocsEnum(leafContext.reader(),
 						zone, new BytesRef(t.text()));
 				
-				int doc;
 				if (de != null) {
-					while ((doc = de.nextDoc()) != PostingsEnum.NO_MORE_DOCS) {
+					while (de.nextDoc() != PostingsEnum.NO_MORE_DOCS) {
 						int docId = de.docID();
 						float normDocLeng = dSimi.decodeNormValue(leafContext.reader()
 								.getNormValues(zone).get(docId));
 						float docLeng = 1 / (normDocLeng * normDocLeng);
 						int tf = de.freq();
-						int docKey = docId + startDocNo;
-						// 
-						double score = (double)(tf/docLeng)*Math.log10((1 + (double)N/df));
+						String docKey = searcher.doc(docId + startDocNo).get("DOCNO");
+						double score = (double)(tf/docLeng)*Math.log10(1 + (double)N/df);
 						if(docScore.containsKey(docKey)) {
 							double currVal = docScore.get(docKey);
-							docScore.put(docKey, currVal + score);
+							docScore.replace(docKey, currVal + score);
 						}
 						else {
 							docScore.put(docKey, score);
@@ -96,17 +99,18 @@ public class easySearch {
 			}
 		}
 		
-		LinkedHashMap<Integer, Double> sortedDocScore = new LinkedHashMap<Integer, Double>();
+		LinkedHashMap<String, Double> sortedDocScore = new LinkedHashMap<String, Double>();
 		 docScore.entrySet().stream().sorted(Map.Entry.comparingByValue(Comparator.reverseOrder()))
 		 					.forEach(x -> sortedDocScore.put(x.getKey(), x.getValue()));
 		return(sortedDocScore);
 	}
 	
 	
-	public void printScores(LinkedHashMap<Integer, Double> docScore) {
-		for(int docid: docScore.keySet())
+	public void printScores(LinkedHashMap<String, Double> docScore) {
+		for(String docid: docScore.keySet())
 			System.out.println("DocID: " + docid + "\tScore: " + docScore.get(docid));
-		System.out.println(docScore.keySet());
+//		System.out.println(docScore.);
+//		System.out.println(docScore.keySet());
 	}
 	
 }
