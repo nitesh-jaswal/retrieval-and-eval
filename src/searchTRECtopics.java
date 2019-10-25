@@ -32,10 +32,11 @@ import org.apache.lucene.store.FSDirectory;
 import org.apache.lucene.util.BytesRef;
 
 public class searchTRECtopics {
+	private String indexPath;
 	public enum ENTRIES {TOP5, TOP10, TOP20, TOP100, TOP1000, ALL};
 	
 	public searchTRECtopics() {
-		
+		indexPath = "F:\\Current Study\\Search\\Assignment 2\\retrieval-and-eval\\index";
 	}
 	
 	public static void main(String[] args) throws IOException, ParseException {
@@ -44,7 +45,7 @@ public class searchTRECtopics {
 		String indexPath = "F:\\Current Study\\Search\\Assignment 2\\retrieval-and-eval\\index";
 		
 //		(new searchTRECtopics()).searchTopics(topicsPath, (new easySearch(indexPath)));
-		(new searchTRECtopics()).searchTopics(topicsPath, indexPath, new ClassicSimilarity());
+		(new searchTRECtopics()).searchTopics(topicsPath, indexPath, "EasySearch");
 		
 		
 //		LinkedHashMap<String, Double> p = (new searchTRECtopics()).getTopX(easyObj.calculateScores("TEXT", "Donald Trump"), ENTRIES.TOP10);
@@ -53,11 +54,10 @@ public class searchTRECtopics {
 //		System.out.println(myQueries[2].getValue("description ").split("<smry>")[0]); 
 	}
 	
-	public void searchTopics(String topicsPath, String indexPath, Similarity sim) throws ParseException, IOException {
+	public void searchTopics(String topicsPath, String indexPath, String similarity) throws ParseException, IOException {
 		
 		
 		File file = new File(topicsPath);
-//		new ClassicSimilarity().
 		easySearch easyObj = new easySearch(indexPath);
 		TrecTopicsReader topics = new TrecTopicsReader();
 				
@@ -81,9 +81,17 @@ public class searchTRECtopics {
 			shortQueryTxt += toText(shortQuery, qId);
 			longQueryTxt += toText(longQuery, qId);
 	}
-		writeToFile("", shortQueryTxt);
-		writeToFile("", longQueryTxt);
+		writeToFile("F:\\Current Study\\Search\\Assignment 2\\retrieval-and-eval\\out\\EasySearchshortQuery.txt", shortQueryTxt);
+		writeToFile("F:\\Current Study\\Search\\Assignment 2\\retrieval-and-eval\\out\\EasySearchlongQuery.txt", longQueryTxt);
 }
+	public LinkedHashMap<String, Double> getSimilarityScores(String similarity, String queryString) throws ParseException, IOException {
+		LinkedHashMap<String, Double> scores = new LinkedHashMap<String, Double>();
+		if(similarity.equals("EasySearch")) {
+			easySearch obj = new easySearch(indexPath);
+			scores = obj.calculateScores("TEXT", queryString);
+		}
+		return(scores);
+	}
 	public void writeToFile(String path , String text) throws IOException {
 		File file = new File(path);
 		if(!file.exists()) {

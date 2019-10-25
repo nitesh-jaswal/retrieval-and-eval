@@ -35,7 +35,9 @@ public class easySearch {
 				.get(indexPath)));
 	}
 	
-	
+	public easySearch(IndexReader r) {
+		reader = r;
+	}
 	
 	public static void main(String[] args)  throws ParseException, IOException {
 		String queryString = "Donald Trump";
