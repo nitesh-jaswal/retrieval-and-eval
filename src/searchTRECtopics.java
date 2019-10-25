@@ -22,33 +22,27 @@ import org.apache.lucene.search.similarities.Similarity;
 import org.apache.lucene.store.FSDirectory;
 
 public class searchTRECtopics {
-	private String indexPath, outputPath;
+	private String indexPath, outputPath, topicsPath;
 	private IndexReader reader;
 	public enum ENTRIES {TOP5, TOP10, TOP20, TOP100, TOP1000, ALL};
 	
-	public searchTRECtopics() throws IOException {
-		indexPath = "F:\\Current Study\\Search\\Assignment 2\\retrieval-and-eval\\index";
-		outputPath = "F:\\Current Study\\Search\\Assignment 2\\retrieval-and-eval\\out\\";
+	public searchTRECtopics(String i, String o, String t) throws IOException {
+		indexPath = i;
+		outputPath = o;
+		topicsPath = t;
 		reader = DirectoryReader.open(FSDirectory.open(Paths
 				.get(indexPath)));
 	}
 	
 	public static void main(String[] args) throws IOException, ParseException {
-		// 1. Find trec_eval 2. Format output according to requirement
-		String topicsPath = "F:\\Current Study\\Search\\Assignment 2\\retrieval-and-eval\\topics.51-100";
 		String indexPath = "F:\\Current Study\\Search\\Assignment 2\\retrieval-and-eval\\index";
-		
-		searchTRECtopics sObj = new searchTRECtopics();
-		sObj.searchTopics(topicsPath, indexPath, null);
-		
-		
-//		LinkedHashMap<String, Double> p = (new searchTRECtopics()).getTopX(easyObj.calculateScores("TEXT", "Donald Trump"), ENTRIES.TOP10);
-//		easyObj.prin tScores(p);
-		
-//		System.out.println(myQueries[2].getValue("description ").split("<smry>")[0]); 
+		String outputPath = "F:\\Current Study\\Search\\Assignment 2\\retrieval-and-eval\\out\\";
+		String topicsPath = "F:\\Current Study\\Search\\Assignment 2\\retrieval-and-eval\\topics.51-100";
+		searchTRECtopics sObj = new searchTRECtopics(indexPath, outputPath, topicsPath);
+		sObj.generateTopicResult(null);
 	}
 	
-	public void searchTopics(String topicsPath, String indexPath, Similarity sim) throws ParseException, IOException {
+	public void generateTopicResult(Similarity sim) throws ParseException, IOException {
 		
 		LinkedHashMap<String, Double> shortQueryMap, longQueryMap;
 		String fname = getFileName(sim);
@@ -93,9 +87,6 @@ public class searchTRECtopics {
 			Query query = parser.parse(queryString);
 			
 			searcher.setSimilarity(sim);
-//			searcher.setSimilarity(new BM25Similarity());
-//			searcher.setSimilarity(new LMDirichletSimilarity());
-//			searcher.setSimilarity(new LMJelinekMercerSimilarity(0.7f));
 			ScoreDoc[] t = searcher.search(query, 1000).scoreDocs;
 			
 			for(ScoreDoc d: t) {

@@ -20,10 +20,7 @@ import org.apache.lucene.queryparser.classic.QueryParser;
 import org.apache.lucene.search.IndexSearcher;
 import org.apache.lucene.search.Query;
 import org.apache.lucene.search.ScoreDoc;
-import org.apache.lucene.search.TopDocs;
-import org.apache.lucene.search.similarities.BM25Similarity;
 import org.apache.lucene.search.similarities.ClassicSimilarity;
-import org.apache.lucene.search.similarities.Similarity;
 import org.apache.lucene.store.FSDirectory;
 import org.apache.lucene.util.BytesRef;
 
@@ -47,7 +44,6 @@ public class easySearch {
 		easySearch obj = new easySearch("F:\\Current Study\\Search\\Assignment 2\\retrieval-and-eval\\index");
 		System.out.println("Searching for query: " + queryString);
 		System.out.println("Searching in: " + "TEXT");
-		System.out.println((new BM25Similarity()).getClass().getName());
 //		obj.testSimilarity(queryString, "TEXT");
 //		LinkedHashMap<String, Double> sortedDocScore = obj.calculateScores("TEXT", queryString);
 //		obj.printScores(sortedDocScore);
@@ -117,10 +113,6 @@ public class easySearch {
 		QueryParser parser = new QueryParser(zone, analyzer);
 		Query query = parser.parse(queryString);
 		
-		searcher.setSimilarity(new ClassicSimilarity());
-//		searcher.setSimilarity(new BM25Similarity());
-//		searcher.setSimilarity(new LMDirichletSimilarity());
-//		searcher.setSimilarity(new LMJelinekMercerSimilarity(0.7f));
 		ScoreDoc[] t = searcher.search(query, 5).scoreDocs;
 		
 		for(ScoreDoc d: t) {
