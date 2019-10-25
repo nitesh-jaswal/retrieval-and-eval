@@ -5,38 +5,32 @@ import java.io.BufferedReader;
 import java.io.BufferedWriter;
 import java.io.FileWriter;
 import java.nio.file.Paths;
-import java.util.LinkedHashSet;
-import java.util.Map;
-import java.util.stream.Collectors;
-import java.util.Comparator;
 import java.util.LinkedHashMap;
 
 import org.apache.lucene.benchmark.quality.trec.TrecTopicsReader;
 import org.apache.lucene.benchmark.quality.QualityQuery;
-import org.apache.lucene.benchmark.quality.QualityQueryParser;
 import org.apache.lucene.analysis.Analyzer;
 import org.apache.lucene.analysis.standard.StandardAnalyzer;
 import org.apache.lucene.index.DirectoryReader;
 import org.apache.lucene.index.IndexReader;
-import org.apache.lucene.index.LeafReaderContext;
-import org.apache.lucene.index.MultiFields;
-import org.apache.lucene.index.PostingsEnum;
-import org.apache.lucene.index.Term;
 import org.apache.lucene.queryparser.classic.ParseException;
 import org.apache.lucene.queryparser.classic.QueryParser;
 import org.apache.lucene.search.IndexSearcher;
 import org.apache.lucene.search.Query;
+import org.apache.lucene.search.ScoreDoc;
 import org.apache.lucene.search.similarities.Similarity;
-import org.apache.lucene.search.similarities.ClassicSimilarity;
 import org.apache.lucene.store.FSDirectory;
-import org.apache.lucene.util.BytesRef;
 
 public class searchTRECtopics {
-	private String indexPath;
+	private String indexPath, outputPath;
+	private IndexReader reader;
 	public enum ENTRIES {TOP5, TOP10, TOP20, TOP100, TOP1000, ALL};
 	
-	public searchTRECtopics() {
+	public searchTRECtopics() throws IOException {
 		indexPath = "F:\\Current Study\\Search\\Assignment 2\\retrieval-and-eval\\index";
+		outputPath = "F:\\Current Study\\Search\\Assignment 2\\retrieval-and-eval\\out\\";
+		reader = DirectoryReader.open(FSDirectory.open(Paths
+				.get(indexPath)));
 	}
 	
 	public static void main(String[] args) throws IOException, ParseException {
@@ -44,8 +38,8 @@ public class searchTRECtopics {
 		String topicsPath = "F:\\Current Study\\Search\\Assignment 2\\retrieval-and-eval\\topics.51-100";
 		String indexPath = "F:\\Current Study\\Search\\Assignment 2\\retrieval-and-eval\\index";
 		
-//		(new searchTRECtopics()).searchTopics(topicsPath, (new easySearch(indexPath)));
-		(new searchTRECtopics()).searchTopics(topicsPath, indexPath, "EasySearch");
+		searchTRECtopics sObj = new searchTRECtopics();
+		sObj.searchTopics(topicsPath, indexPath, null);
 		
 		
 //		LinkedHashMap<String, Double> p = (new searchTRECtopics()).getTopX(easyObj.calculateScores("TEXT", "Donald Trump"), ENTRIES.TOP10);
@@ -54,16 +48,15 @@ public class searchTRECtopics {
 //		System.out.println(myQueries[2].getValue("description ").split("<smry>")[0]); 
 	}
 	
-	public void searchTopics(String topicsPath, String indexPath, String similarity) throws ParseException, IOException {
+	public void searchTopics(String topicsPath, String indexPath, Similarity sim) throws ParseException, IOException {
 		
-		
+		LinkedHashMap<String, Double> shortQueryMap, longQueryMap;
+		String fname = getFileName(sim);
 		File file = new File(topicsPath);
-		easySearch easyObj = new easySearch(indexPath);
 		TrecTopicsReader topics = new TrecTopicsReader();
 				
 		QualityQuery myQueries[] = topics.readQueries(new BufferedReader(new FileReader(file)));
-		LinkedHashMap<String, Double> shortQuery;
-		LinkedHashMap<String, Double> longQuery;
+		
 		String shortQueryTxt = "", longQueryTxt = "";
 		
 		for(QualityQuery query: myQueries) {
@@ -76,22 +69,52 @@ public class searchTRECtopics {
 			 */
 			String titleQuery = query.getValue("title").replaceFirst("[Tt][Oo][Pp][Ii][Cc]:", "").replace("/", " ");
 			String descQuery = query.getValue("description").split("<smry>")[0].replace("/", " ");
-			shortQuery = getTopX(easyObj.calculateScores("TEXT", titleQuery), ENTRIES.TOP1000);
-			longQuery = getTopX(easyObj.calculateScores("TEXT", descQuery), ENTRIES.TOP1000);
-			shortQueryTxt += toText(shortQuery, qId);
-			longQueryTxt += toText(longQuery, qId);
-	}
-		writeToFile("F:\\Current Study\\Search\\Assignment 2\\retrieval-and-eval\\out\\EasySearchshortQuery.txt", shortQueryTxt);
-		writeToFile("F:\\Current Study\\Search\\Assignment 2\\retrieval-and-eval\\out\\EasySearchlongQuery.txt", longQueryTxt);
-}
-	public LinkedHashMap<String, Double> getSimilarityScores(String similarity, String queryString) throws ParseException, IOException {
-		LinkedHashMap<String, Double> scores = new LinkedHashMap<String, Double>();
-		if(similarity.equals("EasySearch")) {
-			easySearch obj = new easySearch(indexPath);
-			scores = obj.calculateScores("TEXT", queryString);
+			shortQueryMap = getSimilarityScores(titleQuery, sim);
+			longQueryMap = getSimilarityScores(descQuery, sim);
+			shortQueryTxt += toText(shortQueryMap, qId);
+			longQueryTxt += toText(longQueryMap, qId);
 		}
-		return(scores);
+		writeToFile(outputPath + fname + "shortQuery.txt", shortQueryTxt);
+		writeToFile(outputPath + fname + "longQuery.txt", longQueryTxt);
 	}
+	
+	private LinkedHashMap<String, Double> getSimilarityScores(String queryString, Similarity sim) throws ParseException, IOException {
+		LinkedHashMap<String, Double> docScore = new LinkedHashMap<String, Double>();
+		String zone = "TEXT";
+		
+		if(sim == null) {
+			easySearch obj = new easySearch(indexPath);
+			docScore = getTopX(obj.calculateScores(zone, queryString), ENTRIES.TOP1000);
+		}
+		else {
+			IndexSearcher searcher = new IndexSearcher(reader);
+			Analyzer analyzer = new StandardAnalyzer();
+			QueryParser parser = new QueryParser(zone, analyzer);
+			Query query = parser.parse(queryString);
+			
+			searcher.setSimilarity(sim);
+//			searcher.setSimilarity(new BM25Similarity());
+//			searcher.setSimilarity(new LMDirichletSimilarity());
+//			searcher.setSimilarity(new LMJelinekMercerSimilarity(0.7f));
+			ScoreDoc[] t = searcher.search(query, 1000).scoreDocs;
+			
+			for(ScoreDoc d: t) {
+				String docKey = searcher.doc(d.doc).get("DOCNO");
+				double score = (double) d.score;
+				
+				if(docScore.containsKey(docKey)) {
+					double currVal = docScore.get(docKey);
+					docScore.replace(docKey, currVal + score);
+				}
+				else {
+					docScore.put(docKey, score);
+				}
+			}
+		}
+		return(docScore);
+	}
+	
+	
 	public void writeToFile(String path , String text) throws IOException {
 		File file = new File(path);
 		if(!file.exists()) {
@@ -112,7 +135,7 @@ public class searchTRECtopics {
 		}
 		return(txt);
 	}
-	
+	// Function not used but may come handy
 	public LinkedHashMap<String, Double> getTopX(LinkedHashMap<String, Double> scoreDoc, ENTRIES e) {
 		LinkedHashMap<String, Double> topXScoreDoc;
 		switch(e) {
@@ -137,5 +160,29 @@ public class searchTRECtopics {
 		}
 		return(topXScoreDoc);
 	}
+	
+	public void printScores(LinkedHashMap<String, Double> docScore) {
+		for(String docKey: docScore.keySet())
+			System.out.println("DocID: " + docKey + "\tScore: " + docScore.get(docKey));
+	}
+	
+	public String getFileName(Similarity sim) {
+		String f = "";
+		if(sim != null) {
+			String cname = sim.getClass().getName();
+			if(cname.equals("org.apache.lucene.search.similarities.ClassicSimilarity"))
+				f = "Classic";
+			else if(cname.equals("org.apache.lucene.search.similarities.BM25Similarity"))
+				f = "BM25";
+			else if(cname.equals("org.apache.lucene.search.similarities.LMDirichletSimilarity"))
+				f = "LMDrichlet";
+			else if(cname.equals("org.apache.lucene.search.similarities.LMJelinekMercerSimilarity"))
+				f = "LMJelinkMercer";
+		}
+		else
+			f = "EasySearch";
+		return(f);
+	}
+
 
 }

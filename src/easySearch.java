@@ -19,6 +19,9 @@ import org.apache.lucene.queryparser.classic.ParseException;
 import org.apache.lucene.queryparser.classic.QueryParser;
 import org.apache.lucene.search.IndexSearcher;
 import org.apache.lucene.search.Query;
+import org.apache.lucene.search.ScoreDoc;
+import org.apache.lucene.search.TopDocs;
+import org.apache.lucene.search.similarities.BM25Similarity;
 import org.apache.lucene.search.similarities.ClassicSimilarity;
 import org.apache.lucene.search.similarities.Similarity;
 import org.apache.lucene.store.FSDirectory;
@@ -44,9 +47,10 @@ public class easySearch {
 		easySearch obj = new easySearch("F:\\Current Study\\Search\\Assignment 2\\retrieval-and-eval\\index");
 		System.out.println("Searching for query: " + queryString);
 		System.out.println("Searching in: " + "TEXT");
-		
-		LinkedHashMap<String, Double> sortedDocScore = obj.calculateScores("TEXT", queryString);
-		obj.printScores(sortedDocScore);
+		System.out.println((new BM25Similarity()).getClass().getName());
+//		obj.testSimilarity(queryString, "TEXT");
+//		LinkedHashMap<String, Double> sortedDocScore = obj.calculateScores("TEXT", queryString);
+//		obj.printScores(sortedDocScore);
 	}
 	
 	public LinkedHashMap<String, Double> calculateScores(String zone, String queryString) throws ParseException, IOException {
@@ -70,8 +74,7 @@ public class easySearch {
 			// document length
 			ClassicSimilarity dSimi = new ClassicSimilarity();
 			// Get the segments of the index
-			List<LeafReaderContext> leafContexts = reader.getContext().reader()
-					.leaves();
+			List<LeafReaderContext> leafContexts = reader.getContext().reader().leaves();
 			// Processing each segment
 			for (int i = 0; i < leafContexts.size(); i++) {
 				// Get document length
@@ -107,10 +110,38 @@ public class easySearch {
 		return(sortedDocScore);
 	}
 	
+	public void testSimilarity(String queryString, String zone) throws ParseException, IOException {
+		LinkedHashMap<String, Double> docScore = new LinkedHashMap<String, Double>();
+		IndexSearcher searcher = new IndexSearcher(reader);
+		Analyzer analyzer = new StandardAnalyzer();
+		QueryParser parser = new QueryParser(zone, analyzer);
+		Query query = parser.parse(queryString);
+		
+		searcher.setSimilarity(new ClassicSimilarity());
+//		searcher.setSimilarity(new BM25Similarity());
+//		searcher.setSimilarity(new LMDirichletSimilarity());
+//		searcher.setSimilarity(new LMJelinekMercerSimilarity(0.7f));
+		ScoreDoc[] t = searcher.search(query, 5).scoreDocs;
+		
+		for(ScoreDoc d: t) {
+			String docKey = searcher.doc(d.doc).get("DOCNO");
+			double score = (double) d.score;
+			
+			if(docScore.containsKey(docKey)) {
+				double currVal = docScore.get(docKey);
+				docScore.replace(docKey, currVal + score);
+			}
+			else {
+				docScore.put(docKey, score);
+			}
+		}
+		printScores(docScore);
+	}
+	
 	
 	public void printScores(LinkedHashMap<String, Double> docScore) {
-		for(String docid: docScore.keySet())
-			System.out.println("DocID: " + docid + "\tScore: " + docScore.get(docid));
+		for(String docKey: docScore.keySet())
+			System.out.println("DocID: " + docKey + "\tScore: " + docScore.get(docKey));
 //		System.out.println(docScore.);
 //		System.out.println(docScore.keySet());
 	}
