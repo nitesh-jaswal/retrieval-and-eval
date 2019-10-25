@@ -6,5 +6,6 @@
 	<classpathentry kind="lib" path="libs/lucene-core-6.2.0.jar"/>
 	<classpathentry kind="lib" path="libs/lucene-queries-6.2.0.jar"/>
 	<classpathentry kind="lib" path="libs/lucene-queryparser-6.2.0.jar"/>
+	<classpathentry kind="lib" path="libs/lucene-benchmark-6.2.0.jar"/>
 	<classpathentry kind="output" path="bin"/>
 </classpath>

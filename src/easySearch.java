@@ -1,10 +1,11 @@
 import java.io.IOException;
 import java.nio.file.Paths;
 import java.util.LinkedHashSet;
-import java.util.HashMap;
+import java.util.Comparator;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
-import java.math.*;
 
 import org.apache.lucene.analysis.Analyzer;
 import org.apache.lucene.analysis.standard.StandardAnalyzer;
@@ -24,12 +25,24 @@ import org.apache.lucene.util.BytesRef;
 
 public class easySearch {
 	
-	public static void main(String[] args)  throws ParseException, IOException {
-		String indexPath = "F:\\Current Study\\Search\\Assignment 2\\retrieval-and-eval\\index";
-		String zone = "TEXT";
-		HashMap<Integer, Double> docScore = new HashMap<Integer, Double>(); // Stores F(q,doc) for each doc 
-		String queryString = "polka dots on my underwear";
+	private String indexPath;
 		
+	public easySearch(String p) {
+		indexPath = p;
+	}
+	
+	public static void main(String[] args)  throws ParseException, IOException {
+//		String indexPath = "F:\\Current Study\\Search\\Assignment 2\\retrieval-and-eval\\index";
+		String queryString = "Donald Trump";
+		easySearch obj = new easySearch("F:\\Current Study\\Search\\Assignment 2\\retrieval-and-eval\\index");
+		LinkedHashMap<Integer, Double> sortedDocScore = obj.calculateScores("TEXT", queryString);
+		obj.printScores(sortedDocScore);
+	}
+	
+	public LinkedHashMap<Integer, Double> calculateScores(String zone, String queryString) throws ParseException, IOException {
+		
+		LinkedHashMap<Integer, Double> docScore = new LinkedHashMap<Integer, Double>();
+		// Stores F(q,doc) for each doc 
 		IndexReader reader = DirectoryReader.open(FSDirectory.open(Paths
 				.get(indexPath)));
 		IndexSearcher searcher = new IndexSearcher(reader);
@@ -83,12 +96,17 @@ public class easySearch {
 			}
 		}
 		
-		printScores(docScore);
+		LinkedHashMap<Integer, Double> sortedDocScore = new LinkedHashMap<Integer, Double>();
+		 docScore.entrySet().stream().sorted(Map.Entry.comparingByValue(Comparator.reverseOrder()))
+		 					.forEach(x -> sortedDocScore.put(x.getKey(), x.getValue()));
+		return(sortedDocScore);
 	}
 	
-	public static void printScores(HashMap<Integer, Double> docScore) {
+	
+	public void printScores(LinkedHashMap<Integer, Double> docScore) {
 		for(int docid: docScore.keySet())
-			System.out.println("DocID: " + docid + "\t" + docScore.get(docid));
+			System.out.println("DocID: " + docid + "\tScore: " + docScore.get(docid));
+		System.out.println(docScore.keySet());
 	}
 	
 }
