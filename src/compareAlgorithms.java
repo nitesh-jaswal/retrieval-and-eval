@@ -19,7 +19,7 @@ public class compareAlgorithms {
 		
 		// EasySearch
 //		sObj.generateTopicResult(null);
-		
+		System.out.println("Creating files...");
 		// ClassicSimilarity
 		sObj.generateTopicResult(new ClassicSimilarity());
 		System.out.println("CLassicSimilarity Done.");
@@ -32,6 +32,7 @@ public class compareAlgorithms {
 		// LMJelinekMercerSimilarity
 		sObj.generateTopicResult(new LMJelinekMercerSimilarity(0.7f));
 		System.out.println("LMJelinekMercerSimilarity Done.");
+		System.out.println("All files created.");
 	}
 
 }

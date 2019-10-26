@@ -65,8 +65,8 @@ public class searchTRECtopics {
 			String descQuery = query.getValue("description").split("<smry>")[0].replace("/", " ");
 			shortQueryMap = getSimilarityScores(titleQuery, sim);
 			longQueryMap = getSimilarityScores(descQuery, sim);
-			shortQueryTxt += toText(shortQueryMap, qId);
-			longQueryTxt += toText(longQueryMap, qId);
+			shortQueryTxt += toText(shortQueryMap, qId, fname);
+			longQueryTxt += toText(longQueryMap, qId, fname);
 		}
 		writeToFile(outputPath + fname + "shortQuery.txt", shortQueryTxt);
 		writeToFile(outputPath + fname + "longQuery.txt", longQueryTxt);
@@ -92,14 +92,7 @@ public class searchTRECtopics {
 			for(ScoreDoc d: t) {
 				String docKey = searcher.doc(d.doc).get("DOCNO");
 				double score = (double) d.score;
-				
-				if(docScore.containsKey(docKey)) {
-					double currVal = docScore.get(docKey);
-					docScore.replace(docKey, currVal + score);
-				}
-				else {
-					docScore.put(docKey, score);
-				}
+				docScore.put(docKey, score);
 			}
 		}
 		return(docScore);
@@ -117,11 +110,11 @@ public class searchTRECtopics {
         bw.close();
 	}
 	
-	public String toText(LinkedHashMap<String, Double> docScore, int qId) {
+	public String toText(LinkedHashMap<String, Double> docScore, int qId, String algoName) {
 		String txt = "";
 		int i = 1;
 		for(String docId: docScore.keySet()) {
-			txt += qId + " 0 " + docId + " " + i + " " + docScore.get(docId) + " EasySearch\n";
+			txt += qId + " 0 " + docId + " " + i + " " + docScore.get(docId) + " " + algoName + "\n";
 			++i;
 		}
 		return(txt);
@@ -162,7 +155,7 @@ public class searchTRECtopics {
 		if(sim != null) {
 			String cname = sim.getClass().getName();
 			if(cname.equals("org.apache.lucene.search.similarities.ClassicSimilarity"))
-				f = "Classic";
+				f = "VectorSpace";
 			else if(cname.equals("org.apache.lucene.search.similarities.BM25Similarity"))
 				f = "BM25";
 			else if(cname.equals("org.apache.lucene.search.similarities.LMDirichletSimilarity"))
